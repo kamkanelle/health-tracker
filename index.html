@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>健康手帳</title>
+<style>
+  :root {
+    --pink:#D4537E;--pink-lt:#FBEAF0;--pink-dk:#72243E;
+    --teal:#1D9E75;--teal-lt:#E1F5EE;--teal-dk:#085041;
+    --blue:#185FA5;--blue-lt:#E6F1FB;--blue-dk:#0C447C;
+    --amber:#E47A11;--amber-lt:#FAEEDA;--amber-dk:#633806;
+    --purple:#7F77DD;--purple-lt:#EEEDFE;--purple-dk:#3C3489;
+    --gray:#888780;--gray-lt:#F1EFE8;--gray-dk:#2C2C2A;
+    --red:#E24B4A;--red-lt:#FCEBEB;
+    --bg:#FAFAF8;--surface:#FFFFFF;--border:#E8E6E0;
+    --text:#1A1A18;--text2:#6B6963;--text3:#A8A49E;
+    --radius:14px;--radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+  .nav-btn{flex:1;padding:12px 4px 10px;font-size:10px;color:var(--text3);border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .15s}
+  .nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .nav-btn.active{color:var(--pink)}
+  .nav-btn.active svg{stroke:var(--pink)}
+  .page{display:none;padding:16px;padding-bottom:80px}
+  .page.active{display:block}
+  .page-title{font-size:20px;font-weight:600;color:var(--text)}
+  .page-sub{font-size:13px;color:var(--text2);margin-top:3px;margin-bottom:18px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px}
+  .card-sm{padding:11px 14px;margin-bottom:8px}
+  .token-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);margin-bottom:10px;font-family:monospace}
+  .btn-primary{width:100%;padding:13px;background:var(--pink);color:white;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer}
+  .btn-secondary{width:100%;padding:11px;background:none;color:var(--text2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;cursor:pointer;margin-top:8px}
+  .progress-bar{height:5px;background:var(--gray-lt);border-radius:3px;overflow:hidden;margin-bottom:3px}
+  .progress-fill{height:100%;background:var(--pink);border-radius:3px;transition:width .4s}
+  .progress-label{font-size:11px;color:var(--text3);text-align:right;margin-bottom:14px}
+  .sec-label{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin:16px 0 8px}
+  .dose-time{font-size:22px;font-weight:600;color:var(--text);letter-spacing:-.02em;cursor:pointer}
+  .dose-time-input{font-size:18px;font-weight:600;border:1px solid var(--border);border-radius:6px;padding:2px 8px;background:var(--bg);color:var(--text);display:none;width:110px}
+  .dose-sublabel{font-size:11px;color:var(--text2);margin-bottom:2px}
+  .dose-note{font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5}
+  .pill-list{display:flex;flex-direction:column;gap:8px}
+  .pill-row{display:flex;align-items:center;gap:10px}
+  .pill-check{width:22px;height:22px;border-radius:50%;border:1.5px solid;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s}
+  .pill-check svg{width:12px;height:12px;stroke:white;fill:none;stroke-width:2.5;display:none}
+  .pill-check.on svg{display:block}
+  .pill-name{font-size:14px;flex:1}
+  .tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap}
+  .delay-row{display:flex;gap:6px;margin-top:10px;align-items:center;flex-wrap:wrap}
+  .delay-lbl{font-size:11px;color:var(--text3)}
+  .delay-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px;color:var(--text2);cursor:pointer}
+  .badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+  .badge-delayed{background:var(--pink-lt);color:var(--pink-dk)}
+  .badge-reminder{background:var(--amber-lt);color:var(--amber-dk)}
+  .meal-card{background:var(--gray-lt);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .meal-time-lbl{font-size:16px;font-weight:600;color:var(--text);min-width:48px}
+  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+  .stat-label{font-size:11px;color:var(--text3);margin-bottom:4px}
+  .stat-value{font-size:22px;font-weight:600;color:var(--text)}
+  .stat-unit{font-size:12px;color:var(--text2);margin-left:2px}
+  .weather-bar{background:var(--blue-lt);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .meal-section{margin-bottom:16px}
+  .meal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .meal-title{font-size:13px;font-weight:600;color:var(--text)}
+  .meal-add-btn{font-size:12px;color:var(--pink);background:none;border:none;cursor:pointer;font-weight:600}
+  .food-entry{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+  .food-entry:last-child{border-bottom:none}
+  .food-info{flex:1}
+  .food-name-text{font-size:13px;color:var(--text)}
+  .food-meta{font-size:11px;color:var(--text3);margin-top:1px}
+  .purine-badge{font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+  .purine-low{background:var(--teal-lt);color:var(--teal-dk)}
+  .purine-med{background:var(--amber-lt);color:var(--amber-dk)}
+  .purine-high{background:var(--red-lt);color:#791F1F}
+  .del-btn{width:24px;height:24px;border-radius:50%;background:var(--gray-lt);border:none;color:var(--text3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-end}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px 40px;width:100%;max-height:90vh;overflow-y:auto}
+  .modal-title{font-size:16px;font-weight:600;margin-bottom:14px}
+  .form-label{font-size:12px;color:var(--text2);margin-bottom:4px;margin-top:12px;display:block}
+  .form-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;background:var(--bg);color:var(--text)}
+  .form-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;background:var(--bg);color:var(--text);appearance:none}
+  .purine-btns{display:flex;gap:8px}
+  .purine-opt{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;border-radius:var(--radius-sm);border:1.5px solid transparent;cursor:pointer}
+  .purine-opt.sel-low{background:var(--teal-lt);color:var(--teal-dk);border-color:var(--teal)}
+  .purine-opt.sel-med{background:var(--amber-lt);color:var(--amber-dk);border-color:var(--amber)}
+  .purine-opt.sel-high{background:var(--red-lt);color:#791F1F;border-color:var(--red)}
+  .purine-opt:not([class*="sel-"]){background:var(--gray-lt);color:var(--text2)}
+  .modal-actions{display:flex;gap:8px;margin-top:18px}
+  .modal-actions button{flex:1;padding:12px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;border:none}
+  .btn-cancel{background:var(--gray-lt);color:var(--text2)}
+  .btn-save{background:var(--pink);color:white}
+
+  /* GOUT PAGE */
+  .sev-btns{display:flex;gap:8px;margin-bottom:14px}
+  .sev-btn{flex:1;padding:9px 4px;text-align:center;font-size:12px;font-weight:600;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:all .15s}
+  .sev-btn.active-mild{background:var(--amber-lt);border-color:var(--amber);color:var(--amber-dk)}
+  .sev-btn.active-mod{background:var(--red-lt);border-color:var(--red);color:#791F1F}
+  .sev-btn.active-sev{background:#500000;border-color:#8B0000;color:white}
+  .body-views{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+  .body-view-wrap{flex:1;max-width:160px;position:relative}
+  .body-view-lbl{font-size:10px;color:var(--text3);text-align:center;margin-bottom:4px}
+  .body-view-wrap svg{width:100%;cursor:crosshair}
+  .pain-legend{display:flex;gap:12px;justify-content:center;margin-bottom:12px}
+  .pain-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+  .pain-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+  /* SYNC */
+  .sync-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--surface);border:1.5px solid var(--blue);border-radius:var(--radius-sm);color:var(--blue-dk);font-size:14px;font-weight:600;cursor:pointer;margin-top:10px}
+  .sync-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);margin-top:8px}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--gray)}
+  .sync-dot.ok{background:var(--teal)}
+  .sync-dot.syncing{background:var(--amber);animation:pulse .8s infinite}
+  .sync-dot.err{background:var(--red)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .supp-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .supp-row:last-child{border-bottom:none}
+  .supp-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .supp-info{flex:1}
+  .supp-name{font-size:13px;font-weight:600;color:var(--text)}
+  .supp-note{font-size:11px;color:var(--text3)}
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--gray-dk);color:white;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;white-space:nowrap}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- TOKEN SCREEN -->
+<div id="tokenScreen" style="min-height:100vh;display:flex;align-items:center;padding:24px">
+  <div style="width:100%">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:44px;margin-bottom:10px">💊</div>
+      <div style="font-size:22px;font-weight:700">健康手帳</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:6px">食藥 · 飲食 · 痛風 · Notion 同步</div>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px">Notion API Token</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px">去 <a href="https://www.notion.so/my-integrations" style="color:var(--blue)">notion.so/my-integrations</a> 建立 integration，複製 token（secret_ 開頭）</div>
+      <input type="password" id="tokenInput" class="token-input" placeholder="secret_xxxxxxxxxxxxxxxx">
+      <button class="btn-primary" onclick="startApp()">進入手帳</button>
+      <button class="btn-secondary" onclick="startAppNoToken()">暫時唔連接 Notion</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none">
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('meds')" id="nav-meds">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg>食藥
+    </button>
+    <button class="nav-btn" onclick="showPage('food')" id="nav-food">
+      <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>飲食
+    </button>
+    <button class="nav-btn" onclick="showPage('gout')" id="nav-gout">
+      <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z"/><circle cx="12" cy="9" r="2.5"/></svg>痛風
+    </button>
+    <button class="nav-btn" onclick="showPage('sync')" id="nav-sync">
+      <svg viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>同步
+    </button>
+  </nav>
+
+  <!-- MEDS PAGE -->
+  <div class="page active" id="page-meds">
+    <div class="page-title">食藥手帳</div>
+    <div class="page-sub" id="medsDateLabel"></div>
+    <div class="progress-bar"><div class="progress-fill" id="medProgress" style="width:0%"></div></div>
+    <div class="progress-label" id="medProgressLabel">今日已食 0 / 0</div>
+    <div id="medsContainer"></div>
+    <div class="sec-label">補充品</div>
+    <div class="card card-sm" id="suppsContainer"></div>
+  </div>
+
+  <!-- FOOD PAGE -->
+  <div class="page" id="page-food">
+    <div class="page-title">飲食記錄</div>
+    <div class="page-sub" id="foodDateLabel"></div>
+    <div id="weatherBar" class="weather-bar" style="display:none">
+      <div id="wIcon" style="font-size:24px">⛅</div>
+      <div><div id="wTemp" style="font-size:16px;font-weight:600;color:var(--blue-dk)">—°C</div><div id="wDesc" style="font-size:11px;color:var(--blue-dk);opacity:.8">載入中…</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">蛋白質</div><span class="stat-value" id="totalProtein">0</span><span class="stat-unit">g</span></div>
+      <div class="stat-card"><div class="stat-label">卡路里</div><span class="stat-value" id="totalCals">0</span><span class="stat-unit">kcal</span></div>
+    </div>
+    <div id="foodLog"></div>
+    <button class="btn-primary" style="margin-top:4px" onclick="openFoodModal()">+ 加食物</button>
+    <button class="sync-btn" onclick="syncMealsToNotion()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+      同步飲食去 Notion
+    </button>
+    <div class="sync-status"><div class="sync-dot" id="foodSyncDot"></div><span id="foodSyncLabel">未同步</span></div>
+  </div>
+
+  <!-- GOUT PAGE -->
+  <div class="page" id="page-gout">
+    <div class="page-title">痛風記錄</div>
+    <div class="page-sub">tap 人形圖標記患處位置</div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">嚴重程度</div>
+    <div class="sev-btns">
+      <button class="sev-btn" id="sev-mild" onclick="setSev('mild')">輕微</button>
+      <button class="sev-btn" id="sev-mod" onclick="setSev('mod')">中度</button>
+      <button class="sev-btn" id="sev-sev" onclick="setSev('severe')">嚴重</button>
+    </div>
+    <div class="pain-legend">
+      <div class="pain-legend-item"><div class="pain-legend-dot" style="background:#E47A11"></div>輕微</div>
+      <div class="pain-legend-item"><div class="pain-legend-dot" style="background:#E24B4A"></div>中度</div>
+      <div class="pain-legend-item"><div class="pain-legend-dot" style="background:#7B0000"></div>嚴重</div>
+      <div class="pain-legend-item" style="font-size:10px;color:var(--text3)">tap 圓點移除</div>
+    </div>
+    <div class="body-views">
+      <!-- FRONT -->
+      <div class="body-view-wrap">
+        <div class="body-view-lbl">前視圖</div>
+        <svg id="svgFront" viewBox="0 0 110 280" xmlns="http://www.w3.org/2000/svg" onclick="tapBody(event,'front')">
+          <!-- head -->
+          <ellipse cx="55" cy="18" rx="13" ry="16" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.2"/>
+          <!-- neck -->
+          <rect x="49" y="32" width="12" height="10" rx="3" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- torso -->
+          <path d="M33 42 Q28 44 27 52 L25 90 Q25 96 30 97 L38 98 L38 115 L72 115 L72 98 L80 97 Q85 96 85 90 L83 52 Q82 44 77 42 Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.2"/>
+          <!-- shoulders bumps -->
+          <ellipse cx="29" cy="46" rx="8" ry="5" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1"/>
+          <ellipse cx="81" cy="46" rx="8" ry="5" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- left arm -->
+          <path d="M22 50 Q16 55 15 68 L14 90 Q14 94 17 95 L22 95 Q25 94 26 90 L27 68 Q27 55 22 50Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- right arm -->
+          <path d="M88 50 Q94 55 95 68 L96 90 Q96 94 93 95 L88 95 Q85 94 84 90 L83 68 Q83 55 88 50Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- left forearm -->
+          <path d="M14 96 Q12 108 12 118 L13 132 Q13 136 16 136 L21 136 Q24 136 24 132 L24 118 Q24 108 22 96Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- right forearm -->
+          <path d="M96 96 Q98 108 98 118 L97 132 Q97 136 94 136 L89 136 Q86 136 86 132 L86 118 Q86 108 88 96Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- left hand -->
+          <ellipse cx="17" cy="140" rx="6" ry="8" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- right hand -->
+          <ellipse cx="93" cy="140" rx="6" ry="8" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- pelvis -->
+          <path d="M36 115 Q30 118 29 126 L29 135 Q30 140 38 141 L72 141 Q80 140 81 135 L81 126 Q80 118 74 115Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- left thigh -->
+          <path d="M36 140 Q31 144 30 158 L30 185 Q31 190 36 191 L46 191 Q51 190 52 185 L52 158 Q51 144 46 140Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- right thigh -->
+          <path d="M74 140 Q79 144 80 158 L80 185 Q79 190 74 191 L64 191 Q59 190 58 185 L58 158 Q59 144 64 140Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- left knee -->
+          <ellipse cx="41" cy="195" rx="10" ry="7" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- right knee -->
+          <ellipse cx="69" cy="195" rx="10" ry="7" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- left shin -->
+          <path d="M32 200 Q30 215 30 228 L31 245 Q32 249 37 249 L46 249 Q51 249 52 245 L52 228 Q52 215 50 200Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- right shin -->
+          <path d="M60 200 Q58 215 58 228 L59 245 Q60 249 64 249 L73 249 Q78 249 79 245 L79 228 Q79 215 80 200Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- left foot -->
+          <path d="M30 248 L30 255 Q30 260 35 261 L48 261 Q53 260 53 255 L52 248Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- right foot -->
+          <path d="M58 248 L58 255 Q58 260 63 261 L76 261 Q81 260 81 255 L79 248Z" fill="#EDE9E3" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- toes left -->
+          <ellipse cx="35" cy="263" rx="3" ry="2.5" fill="#EDE9E3" stroke="#C0BAB0" stroke-width=".8"/>
+          <ellipse cx="40" cy="264" rx="3" ry="2.5" fill="#EDE9E3" stroke="#C0BAB0" stroke-width=".8"/>
+          <ellipse cx="45" cy="264" rx="3" ry="2.5" fill="#EDE9E3" stroke="#C0BAB0" stroke-width=".8"/>
+          <ellipse cx="50" cy="263" rx="2.5" ry="2" fill="#EDE9E3" stroke="#C0BAB0" stroke-width=".8"/>
+          <!-- toes right -->
+          <ellipse cx="62" cy="263" rx="2.5" ry="2" fill="#EDE9E3" stroke="#C0BAB0" stroke-width=".8"/>
+          <ellipse cx="67" cy="264" rx="3" ry="2.5" fill="#EDE9E3" stroke="#C0BAB0" stroke-width=".8"/>
+          <ellipse cx="72" cy="264" rx="3" ry="2.5" fill="#EDE9E3" stroke="#C0BAB0" stroke-width=".8"/>
+          <ellipse cx="77" cy="263" rx="3" ry="2.5" fill="#EDE9E3" stroke="#C0BAB0" stroke-width=".8"/>
+          <!-- body line details -->
+          <path d="M55 42 L55 80" stroke="#D0CAC0" stroke-width=".6" fill="none"/>
+          <path d="M45 50 Q55 60 65 50" stroke="#D0CAC0" stroke-width=".6" fill="none"/>
+          <g id="marksFront"></g>
+        </svg>
+      </div>
+      <!-- BACK -->
+      <div class="body-view-wrap">
+        <div class="body-view-lbl">後視圖</div>
+        <svg id="svgBack" viewBox="0 0 110 280" xmlns="http://www.w3.org/2000/svg" onclick="tapBody(event,'back')">
+          <!-- head -->
+          <ellipse cx="55" cy="18" rx="13" ry="16" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.2"/>
+          <!-- neck -->
+          <rect x="49" y="32" width="12" height="10" rx="3" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- torso back -->
+          <path d="M33 42 Q28 44 27 52 L25 90 Q25 96 30 97 L38 98 L38 115 L72 115 L72 98 L80 97 Q85 96 85 90 L83 52 Q82 44 77 42 Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.2"/>
+          <ellipse cx="29" cy="46" rx="8" ry="5" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <ellipse cx="81" cy="46" rx="8" ry="5" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- spine line -->
+          <path d="M55 44 L55 115" stroke="#C0BAB0" stroke-width="1" fill="none" stroke-dasharray="2,2"/>
+          <!-- shoulder blades -->
+          <path d="M38 52 Q33 58 34 65 Q38 68 44 65 Q48 58 45 52Z" fill="#DDD8D0" stroke="#C0BAB0" stroke-width=".8"/>
+          <path d="M72 52 Q77 58 76 65 Q72 68 66 65 Q62 58 65 52Z" fill="#DDD8D0" stroke="#C0BAB0" stroke-width=".8"/>
+          <!-- arms back -->
+          <path d="M22 50 Q16 55 15 68 L14 90 Q14 94 17 95 L22 95 Q25 94 26 90 L27 68 Q27 55 22 50Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <path d="M88 50 Q94 55 95 68 L96 90 Q96 94 93 95 L88 95 Q85 94 84 90 L83 68 Q83 55 88 50Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <path d="M14 96 Q12 108 12 118 L13 132 Q13 136 16 136 L21 136 Q24 136 24 132 L24 118 Q24 108 22 96Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <path d="M96 96 Q98 108 98 118 L97 132 Q97 136 94 136 L89 136 Q86 136 86 132 L86 118 Q86 108 88 96Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <ellipse cx="17" cy="140" rx="6" ry="8" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <ellipse cx="93" cy="140" rx="6" ry="8" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- pelvis back / glutes -->
+          <path d="M36 115 Q28 120 28 130 Q30 142 41 143 L55 143 L69 143 Q80 142 82 130 Q82 120 74 115Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <path d="M36 117 Q32 128 38 138 Q45 142 55 141" stroke="#D0CAC0" stroke-width=".8" fill="none"/>
+          <path d="M74 117 Q78 128 72 138 Q65 142 55 141" stroke="#D0CAC0" stroke-width=".8" fill="none"/>
+          <!-- legs back -->
+          <path d="M36 140 Q31 144 30 158 L30 185 Q31 190 36 191 L46 191 Q51 190 52 185 L52 158 Q51 144 46 140Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <path d="M74 140 Q79 144 80 158 L80 185 Q79 190 74 191 L64 191 Q59 190 58 185 L58 158 Q59 144 64 140Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- popliteal fossa crease -->
+          <path d="M31 195 Q41 198 51 195" stroke="#C0BAB0" stroke-width="1" fill="none"/>
+          <path d="M59 195 Q69 198 79 195" stroke="#C0BAB0" stroke-width="1" fill="none"/>
+          <ellipse cx="41" cy="196" rx="10" ry="5" fill="#DDD8D0" stroke="#C0BAB0" stroke-width="1"/>
+          <ellipse cx="69" cy="196" rx="10" ry="5" fill="#DDD8D0" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- calves back -->
+          <path d="M32 200 Q29 215 30 228 L31 245 Q32 249 37 249 L46 249 Q51 249 52 245 L52 228 Q52 215 50 200Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <path d="M60 200 Q58 215 58 228 L59 245 Q60 249 64 249 L73 249 Q78 249 79 245 L79 228 Q79 215 80 200Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1.1"/>
+          <!-- achilles/ankle -->
+          <ellipse cx="41" cy="250" rx="9" ry="4" fill="#DDD8D0" stroke="#C0BAB0" stroke-width="1"/>
+          <ellipse cx="69" cy="250" rx="9" ry="4" fill="#DDD8D0" stroke="#C0BAB0" stroke-width="1"/>
+          <!-- heels -->
+          <path d="M32 252 L32 260 Q33 264 41 264 L49 264 Q52 260 52 252Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <path d="M59 252 L59 260 Q60 264 69 264 L77 264 Q80 260 80 252Z" fill="#E5E0D8" stroke="#C0BAB0" stroke-width="1"/>
+          <g id="marksBack"></g>
+        </svg>
+      </div>
+    </div>
+    <button class="btn-secondary" style="margin-bottom:10px;font-size:13px;padding:9px" onclick="clearMarks()">清除所有標記</button>
+    <div class="sec-label">今日痛楚記錄</div>
+    <div id="goutLog"></div>
+    <button class="btn-primary" onclick="saveGoutRecord()">儲存今日記錄</button>
+  </div>
+
+  <!-- SYNC PAGE -->
+  <div class="page" id="page-sync">
+    <div class="page-title">Notion 同步</div>
+    <div class="page-sub" id="tokenStatus">未連接</div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">更換 Token</div>
+      <input type="password" id="newTokenInput" class="token-input" placeholder="secret_xxxxxxxxxxxxxxxx" style="margin-bottom:8px">
+      <button class="btn-primary" onclick="updateToken()">更新 Token</button>
+    </div>
+    <div class="sec-label">快速同步</div>
+    <button class="sync-btn" onclick="syncMealsToNotion()">同步今日飲食 → Meal Log</button>
+    <button class="sync-btn" style="margin-top:8px;border-color:var(--teal);color:var(--teal-dk)" onclick="syncSummaryToNotion()">同步每日總結 → Daily Summary</button>
+    <div class="sync-status" style="margin-top:12px"><div class="sync-dot" id="syncDot"></div><span id="syncLabel">就緒</span></div>
+    <div class="sec-label" style="margin-top:20px">已連接 Databases</div>
+    <div class="card card-sm" style="font-size:12px;color:var(--text2);line-height:2">
+      <div>🍽️ Meal Log <span style="font-family:monospace;font-size:11px;color:var(--text3)">f98ec883…</span></div>
+      <div>📊 Daily Summary <span style="font-family:monospace;font-size:11px;color:var(--text3)">c7111736…</span></div>
+      <div>🏠 Health Page <span style="font-family:monospace;font-size:11px;color:var(--text3)">34f28f55…</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOD MODAL -->
+<div class="modal-bg" id="foodModal">
+  <div class="modal">
+    <div class="modal-title">加食物</div>
+    <label class="form-label">食咩</label>
+    <input class="form-input" id="foodName" placeholder="例如：白飯、雞胸、牛排">
+    <label class="form-label">份量（g）</label>
+    <input class="form-input" id="foodGrams" type="number" placeholder="100">
+    <label class="form-label">蛋白質 per 100g（g）</label>
+    <input class="form-input" id="foodProtein" type="number" placeholder="20">
+    <label class="form-label">卡路里 per 100g（kcal）</label>
+    <input class="form-input" id="foodCals" type="number" placeholder="150">
+    <label class="form-label">餐別</label>
+    <select class="form-select" id="foodMeal">
+      <option value="🌅 Breakfast">🌅 早餐</option>
+      <option value="🍱 Lunch">🍱 午餐</option>
+      <option value="🌙 Dinner">🌙 晚餐</option>
+      <option value="🍎 Snack">🍎 小食</option>
+    </select>
+    <label class="form-label">普林風險</label>
+    <div class="purine-btns">
+      <div class="purine-opt" id="pur-low" onclick="selPurine('low')">低<br><span style="font-weight:400;font-size:10px">安全</span></div>
+      <div class="purine-opt" id="pur-med" onclick="selPurine('med')">中<br><span style="font-weight:400;font-size:10px">適量</span></div>
+      <div class="purine-opt" id="pur-high" onclick="selPurine('high')">高<br><span style="font-weight:400;font-size:10px">避免</span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeFoodModal()">取消</button>
+      <button class="btn-save" onclick="addFood()">加入</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let notionToken='';
+const MEAL_DB='f98ec883-26cf-4123-8782-3312d2f3e2c2';
+const SUMMARY_DB='c7111736-92b2-4297-98b8-be47da39339e';
+const today=new Date();
+const todayStr=today.toISOString().split('T')[0];
+let medState={checked:{},times:{},delayed:{},suppChecked:{}};
+let foodLog=[];
+let selPurineVal='low';
+let goutMarks=[];
+let curSev='mod';
+
+const DOSES=[
+  {id:'d0',base:'09:00',sublabel:'中藥（牛黃解毒片）',note:'早餐後・與西藥相隔 1 小時',pills:[{id:'p0',name:'牛黃解毒片',type:'chinese'}]},
+  {id:'dr',base:'09:15',sublabel:'早餐提醒',note:'',isReminder:true,reminderText:'煮雞蛋 x 2',pills:[]},
+  {id:'d1',base:'10:00',sublabel:'西藥（第一次）',note:'早餐後',pills:[{id:'p1',name:'消炎止痛藥',type:'western'},{id:'p2',name:'白色痛風藥',type:'western'},{id:'p3',name:'胃藥',type:'western'}]},
+  {id:'d2',base:'13:00',sublabel:'中藥（許勝中藥）',note:'午飯後・與西藥相隔 1 小時',pills:[{id:'p4',name:'許勝中藥',type:'chinese'}]},
+  {id:'d3',base:'16:00',sublabel:'西藥（第二次）',note:'飯後・距上次 6 小時',pills:[{id:'p5',name:'消炎止痛藥',type:'western'},{id:'p6',name:'白色痛風藥',type:'western'}]},
+  {id:'d4',base:'22:00',sublabel:'西藥（第三次）',note:'晚飯後・距上次 6 小時',pills:[{id:'p7',name:'消炎止痛藥',type:'western'},{id:'p8',name:'白色痛風藥',type:'western'},{id:'p9',name:'胃藥',type:'western'}]},
+];
+const SUPPS=[
+  {id:'s0',name:'Berocca（Vit C+B+D+Zinc）',note:'早上・11:00',time:'11:00',dot:'#E47A11'},
+  {id:'s1',name:'益生菌',note:'早上・飯後・11:00',time:'11:00',dot:'#185FA5'},
+];
+const COL={
+  chinese:{border:'#1D9E75',bg:'#E1F5EE',text:'#085041',label:'中藥'},
+  western:{border:'#185FA5',bg:'#E6F1FB',text:'#0C447C',label:'西藥'},
+};
+const MEALS_TL=[{time:'12:30',name:'午飯'},{time:'19:00',name:'晚飯'}];
+
+function startApp(){const t=document.getElementById('tokenInput').value.trim();if(!t){showToast('請輸入 Notion Token');return;}notionToken=t;launch();}
+function startAppNoToken(){notionToken='';launch();}
+function launch(){
+  document.getElementById('tokenScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  const days=['日','一','二','三','四','五','六'];
+  const lbl=`${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日（星期${days[today.getDay()]}）`;
+  document.getElementById('medsDateLabel').textContent=lbl;
+  document.getElementById('foodDateLabel').textContent=lbl;
+  buildMeds();buildSupps();buildFood();fetchWeather();updateTokenStatus();
+}
+function updateToken(){const t=document.getElementById('newTokenInput').value.trim();if(!t){showToast('請輸入 Token');return;}notionToken=t;updateTokenStatus();showToast('Token 已更新');}
+function updateTokenStatus(){document.getElementById('tokenStatus').textContent=notionToken?'已連接 Notion ✓':'未連接';}
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');document.getElementById('nav-'+id).classList.add('active');}
+
+function parseT(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+function addM(t,m){const tot=parseT(t)+m;return String(Math.floor(tot/60)%24).padStart(2,'0')+':'+String(tot%60).padStart(2,'0');}
+function getT(id){return medState.times[id]||DOSES.find(d=>d.id===id).base;}
+
+function buildMeds(){
+  const c=document.getElementById('medsContainer');c.innerHTML='';
+  const items=[...DOSES.map(d=>({type:'dose',data:d,st:parseT(getT(d.id))})),...MEALS_TL.map(m=>({type:'meal',data:m,st:parseT(m.time)}))].sort((a,b)=>a.st-b.st);
+  items.forEach(item=>{
+    if(item.type==='meal'){
+      const div=document.createElement('div');div.className='meal-card';
+      div.innerHTML=`<span class="meal-time-lbl">${item.data.time}</span><span style="font-size:18px">🍽️</span><span style="font-size:13px;color:var(--text2)">${item.data.name}</span>`;
+      c.appendChild(div);return;
+    }
+    const d=item.data;const time=getT(d.id);const isD=!!medState.delayed[d.id];
+    const div=document.createElement('div');div.className='card';
+    if(d.isReminder){
+      const rk=!!medState.checked['r_'+d.id];
+      div.style.borderColor='#E47A11';
+      div.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span class="dose-time">${time}</span><span class="badge badge-reminder">提醒</span></div><div class="dose-sublabel">${d.sublabel}</div><div class="pill-list" style="margin-top:8px"><div class="pill-row"><div class="pill-check${rk?' on':''}" style="border-color:#E47A11;${rk?'background:#E47A11':''}" onclick="togglePill('r_${d.id}')"><svg viewBox="0 0 12 12"><polyline points="1.5 6 4.5 9 10.5 3"/></svg></div><span class="pill-name">${d.reminderText}</span><span class="tag" style="background:#FAEEDA;color:#633806">提醒</span></div></div>`;
+      c.appendChild(div);return;
+    }
+    const pH=d.pills.map(p=>{const col=COL[p.type];const chk=!!medState.checked[p.id];return `<div class="pill-row"><div class="pill-check${chk?' on':''}" style="border-color:${col.border};${chk?'background:'+col.border:''}" onclick="togglePill('${p.id}')"><svg viewBox="0 0 12 12"><polyline points="1.5 6 4.5 9 10.5 3"/></svg></div><span class="pill-name">${p.name}</span><span class="tag" style="background:${col.bg};color:${col.text}">${col.label}</span></div>`;}).join('');
+    div.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px"><div><span class="dose-time" id="t-${d.id}" onclick="startEdit('${d.id}')">${time}</span><input class="dose-time-input" id="inp-${d.id}" type="time" value="${time}" onchange="onTC('${d.id}',this.value)" onblur="endEdit('${d.id}')"></div>${isD?'<span class="badge badge-delayed">已推遲</span>':''}</div><div class="dose-sublabel">${d.sublabel}</div><div class="dose-note">${d.note}</div><div class="pill-list">${pH}</div><div class="delay-row"><span class="delay-lbl">推遲：</span>${[15,30,60].map(m=>`<button class="delay-btn" onclick="delayD('${d.id}',${m})">+${m}min</button>`).join('')}</div>`;
+    c.appendChild(div);
+  });
+  updateMedProgress();
+}
+function startEdit(did){document.getElementById('t-'+did).style.display='none';const i=document.getElementById('inp-'+did);i.style.display='inline-block';i.focus();}
+function endEdit(did){document.getElementById('inp-'+did).style.display='none';document.getElementById('t-'+did).style.display='inline';}
+function onTC(did,val){medState.times[did]=val;medState.delayed[did]=true;buildMeds();}
+function delayD(did,mins){medState.times[did]=addM(getT(did),mins);medState.delayed[did]=true;buildMeds();}
+function togglePill(pid){medState.checked[pid]=!medState.checked[pid];buildMeds();buildSupps();}
+function buildSupps(){
+  const c=document.getElementById('suppsContainer');c.innerHTML='';
+  SUPPS.forEach(s=>{const chk=!!medState.suppChecked[s.id];const div=document.createElement('div');div.className='supp-row';div.innerHTML=`<div class="supp-dot" style="background:${s.dot}"></div><div class="supp-info"><div class="supp-name">${s.name}</div><div class="supp-note">${s.note}</div></div><span style="font-size:11px;color:var(--text2);margin-right:8px">${s.time}</span><div class="pill-check${chk?' on':''}" style="border-color:${chk?'#888780':'#C8C4BC'};${chk?'background:#888780':''}" onclick="toggleSupp('${s.id}')"><svg viewBox="0 0 12 12"><polyline points="1.5 6 4.5 9 10.5 3"/></svg></div>`;c.appendChild(div);});
+  updateMedProgress();
+}
+function toggleSupp(sid){medState.suppChecked[sid]=!medState.suppChecked[sid];buildSupps();}
+function updateMedProgress(){
+  const pills=DOSES.flatMap(d=>[...d.pills.map(p=>p.id),d.isReminder?['r_'+d.id]:[]].flat());
+  const supps=SUPPS.map(s=>s.id);const total=pills.length+supps.length;
+  const done=pills.filter(id=>medState.checked[id]).length+supps.filter(id=>medState.suppChecked[id]).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('medProgress').style.width=pct+'%';
+  document.getElementById('medProgressLabel').textContent=`今日已食 ${done} / ${total}`;
+}
+
+// FOOD
+const PMAP={low:'purine-low',med:'purine-med',high:'purine-high'};
+const PLBL={low:'低普林',med:'中普林',high:'高普林'};
+function buildFood(){
+  const secs=['🌅 Breakfast','🍱 Lunch','🌙 Dinner','🍎 Snack'];
+  const lbls={'🌅 Breakfast':'早餐','🍱 Lunch':'午餐','🌙 Dinner':'晚餐','🍎 Snack':'小食'};
+  const c=document.getElementById('foodLog');c.innerHTML='';
+  let tP=0,tC=0;foodLog.forEach(f=>{tP+=f.protein||0;tC+=f.cals||0;});
+  document.getElementById('totalProtein').textContent=Math.round(tP);
+  document.getElementById('totalCals').textContent=Math.round(tC);
+  secs.forEach(sec=>{
+    const items=foodLog.filter(f=>f.meal===sec);
+    const div=document.createElement('div');div.className='meal-section';
+    div.innerHTML=`<div class="meal-header"><span class="meal-title">${sec.split(' ')[0]} ${lbls[sec]}</span><button class="meal-add-btn" onclick="openFoodModal('${sec}')">+ 加</button></div>`;
+    const list=document.createElement('div');list.className='card card-sm';
+    if(!items.length){list.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:4px 0">未有記錄</div>`;}
+    else items.forEach(f=>{const idx=foodLog.indexOf(f);const row=document.createElement('div');row.className='food-entry';row.innerHTML=`<div class="food-info"><div class="food-name-text">${f.name}</div><div class="food-meta">${f.grams}g · 蛋白質 ${Math.round(f.protein)}g · ${Math.round(f.cals)} kcal</div></div><span class="purine-badge ${PMAP[f.purine]}">${PLBL[f.purine]}</span><button class="del-btn" onclick="delFood(${idx})">×</button>`;list.appendChild(row);});
+    div.appendChild(list);c.appendChild(div);
+  });
+}
+let preFillMeal='🌅 Breakfast';
+function openFoodModal(meal){preFillMeal=meal||'🌅 Breakfast';document.getElementById('foodName').value='';document.getElementById('foodGrams').value='';document.getElementById('foodProtein').value='';document.getElementById('foodCals').value='';document.getElementById('foodMeal').value=preFillMeal;selPurine('low');document.getElementById('foodModal').classList.add('open');}
+function closeFoodModal(){document.getElementById('foodModal').classList.remove('open');}
+function selPurine(v){selPurineVal=v;['low','med','high'].forEach(x=>{const el=document.getElementById('pur-'+x);el.className='purine-opt'+(x===v?' sel-'+x:'');});}
+function addFood(){const name=document.getElementById('foodName').value.trim();const grams=parseFloat(document.getElementById('foodGrams').value)||100;const p100=parseFloat(document.getElementById('foodProtein').value)||0;const c100=parseFloat(document.getElementById('foodCals').value)||0;const meal=document.getElementById('foodMeal').value;if(!name){showToast('請輸入食物名稱');return;}foodLog.push({name,grams,protein:p100*grams/100,cals:c100*grams/100,p100,c100,meal,purine:selPurineVal});closeFoodModal();buildFood();}
+function delFood(idx){foodLog.splice(idx,1);buildFood();}
+
+// WEATHER
+async function fetchWeather(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.5085&longitude=-0.1257&current_weather=true&timezone=Europe/London');
+    const d=await r.json();const w=d.current_weather;
+    const icons={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',51:'🌦️',61:'🌧️',71:'🌨️',80:'🌦️',95:'⛈️'};
+    const descs={0:'晴天',1:'大致晴朗',2:'半陰',3:'陰天',45:'有霧',51:'微雨',61:'有雨',71:'下雪',80:'陣雨',95:'雷暴'};
+    const wc=w.weathercode;
+    document.getElementById('wIcon').textContent=icons[wc]||'🌡️';
+    document.getElementById('wTemp').textContent=Math.round(w.temperature)+'°C';
+    document.getElementById('wDesc').textContent=(descs[wc]||'—')+' · 風速 '+Math.round(w.windspeed)+' km/h';
+    document.getElementById('weatherBar').style.display='flex';
+  }catch(e){console.log('Weather unavailable (CORS when opened locally)',e);}
+}
+
+// GOUT
+function setSev(s){curSev=s;['mild','mod','sev'].forEach(x=>{document.getElementById('sev-'+x).className='sev-btn'+(x===s?' active-'+x:'');});}
+function tapBody(e,view){
+  const svg=e.currentTarget;const rect=svg.getBoundingClientRect();const vb=svg.viewBox.baseVal;
+  const x=(e.clientX-rect.left)/rect.width*vb.width;const y=(e.clientY-rect.top)/rect.height*vb.height;
+  goutMarks.push({x:Math.round(x*10)/10,y:Math.round(y*10)/10,view,sev:curSev,id:Date.now()});
+  renderMarks();buildGoutLog();
+}
+function renderMarks(){
+  ['front','back'].forEach(view=>{
+    const g=document.getElementById('marks'+view.charAt(0).toUpperCase()+view.slice(1));g.innerHTML='';
+    goutMarks.filter(m=>m.view===view).forEach(m=>{
+      const col=m.sev==='mild'?'#E47A11':m.sev==='mod'?'#E24B4A':'#7B0000';
+      const ns='http://www.w3.org/2000/svg';
+      const outer=document.createElementNS(ns,'circle');outer.setAttribute('cx',m.x);outer.setAttribute('cy',m.y);outer.setAttribute('r',6);outer.setAttribute('fill',col);outer.setAttribute('opacity','0.25');
+      const inner=document.createElementNS(ns,'circle');inner.setAttribute('cx',m.x);inner.setAttribute('cy',m.y);inner.setAttribute('r',4);inner.setAttribute('fill',col);inner.setAttribute('stroke','white');inner.setAttribute('stroke-width','1.2');
+      inner.style.cursor='pointer';
+      const grp=document.createElementNS(ns,'g');grp.appendChild(outer);grp.appendChild(inner);
+      grp.onclick=(e)=>{e.stopPropagation();removeMark(m.id);};
+      g.appendChild(grp);
+    });
+  });
+}
+function removeMark(id){goutMarks=goutMarks.filter(m=>m.id!==id);renderMarks();buildGoutLog();}
+function clearMarks(){goutMarks=[];renderMarks();buildGoutLog();}
+const SEV_LBL={mild:'輕微',mod:'中度',severe:'嚴重'};
+function buildGoutLog(){
+  const c=document.getElementById('goutLog');
+  if(!goutMarks.length){c.innerHTML=`<div class="card card-sm" style="color:var(--text3);font-size:13px">未有標記，tap 人形圖標記患處</div>`;return;}
+  const counts={mild:0,mod:0,severe:0};goutMarks.forEach(m=>counts[m.sev]=(counts[m.sev]||0)+1);
+  c.innerHTML=`<div class="card card-sm">${Object.entries(counts).filter(([,v])=>v>0).map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0"><div style="width:10px;height:10px;border-radius:50%;background:${k==='mild'?'#E47A11':k==='mod'?'#E24B4A':'#7B0000'}"></div><span style="font-size:13px">${SEV_LBL[k]}：${v} 個位置</span></div>`).join('')}<div style="font-size:11px;color:var(--text3);margin-top:6px">tap 圓點可移除標記</div></div>`;
+}
+function saveGoutRecord(){if(!goutMarks.length){showToast('請先標記患處');return;}showToast(`已儲存 ${goutMarks.length} 個痛點記錄`);}
+
+// NOTION
+function setSyncStatus(state,msg){['syncDot','foodSyncDot'].forEach(id=>{const d=document.getElementById(id);if(d)d.className='sync-dot '+state;});['syncLabel','foodSyncLabel'].forEach(id=>{const d=document.getElementById(id);if(d)d.textContent=msg;});}
+async function syncMealsToNotion(){
+  if(!notionToken){showToast('請先輸入 Notion Token');showPage('sync');return;}
+  if(!foodLog.length){showToast('未有飲食記錄');return;}
+  setSyncStatus('syncing','同步中…');let ok=0,fail=0;
+  for(const f of foodLog){
+    try{const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`Create a page in Notion Meal Log database (ID: ${MEAL_DB}) with: Food: "${f.name}", Grams: ${f.grams}, Protein_per100g: ${f.p100}, Calories_per100g: ${f.c100}, Meal: "${f.meal}", Date: "${todayStr}". Token: ${notionToken}`}],mcp_servers:[{type:'url',url:'https://mcp.notion.com/mcp',name:'notion'}]})});if(res.ok)ok++;else fail++;}catch(e){fail++;}
+  }
+  setSyncStatus(fail?'err':'ok',fail?`${ok}成功 ${fail}失敗`:`${ok}筆已同步 ✓`);showToast(fail?`${fail}筆失敗`:`${ok}筆飲食已同步 ✓`);
+}
+async function syncSummaryToNotion(){
+  if(!notionToken){showToast('請先輸入 Notion Token');showPage('sync');return;}
+  setSyncStatus('syncing','同步中…');
+  try{const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`Create page in Notion Daily Summary DB (ID: ${SUMMARY_DB}): Date: "${todayStr}", Calorie Target: 1500. Token: ${notionToken}`}],mcp_servers:[{type:'url',url:'https://mcp.notion.com/mcp',name:'notion'}]})});setSyncStatus(res.ok?'ok':'err',res.ok?'每日總結已同步 ✓':'同步失敗');showToast(res.ok?'每日總結已同步 ✓':'同步失敗');}catch(e){setSyncStatus('err','連接失敗');showToast('網絡連接失敗');}
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+buildGoutLog();setSev('mod');
+</script>
+</body>
+</html>
