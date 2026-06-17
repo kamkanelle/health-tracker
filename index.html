@@ -418,9 +418,11 @@ const todayStr=today.toISOString().split('T')[0];
 const DEFAULT_DOSES=[
   {id:'d0',base:'09:00',sublabel:'中藥（牛黃解毒片）',note:'早餐後・與西藥相隔 1 小時',pills:[{id:'p0',name:'牛黃解毒片',type:'chinese'}]},
   {id:'dr',base:'09:15',sublabel:'早餐提醒',note:'',isReminder:true,reminderText:'煮雞蛋 x 2',pills:[]},
-  {id:'d1',base:'10:00',sublabel:'西藥（第一次）',note:'早餐後',pills:[{id:'p1',name:'消炎止痛藥',type:'western'},{id:'p2',name:'白色痛風藥',type:'western'},{id:'p3',name:'胃藥',type:'western'}]},
-  {id:'d3',base:'16:00',sublabel:'西藥（第二次）',note:'飯後・距上次 6 小時',pills:[{id:'p5',name:'消炎止痛藥',type:'western'},{id:'p6',name:'白色痛風藥',type:'western'}]},
-  {id:'d4',base:'22:00',sublabel:'西藥（第三次）',note:'晚飯後・距上次 6 小時',pills:[{id:'p7',name:'消炎止痛藥',type:'western'},{id:'p8',name:'白色痛風藥',type:'western'},{id:'p9',name:'胃藥',type:'western'}]},
+  {id:'d1',base:'10:00',sublabel:'西藥（第一次）',note:'早餐後 ｜ 消炎止痛＋痛風藥＋胃藥',pills:[{id:'p1',name:'消炎止痛藥',type:'western'},{id:'p2',name:'白色痛風藥',type:'western'},{id:'p3',name:'胃藥',type:'western'}]},
+  {id:'d2',base:'14:00',sublabel:'消炎止痛（第二次）',note:'距上次 4 小時',pills:[{id:'p4',name:'消炎止痛藥',type:'western'}]},
+  {id:'d3',base:'16:00',sublabel:'白色痛風藥（第二次）',note:'痛風藥距首次 6 小時',pills:[{id:'p6',name:'白色痛風藥',type:'western'}]},
+  {id:'d4',base:'18:00',sublabel:'消炎止痛（第四次）',note:'距上次 4 小時',pills:[{id:'p7',name:'消炎止痛藥',type:'western'}]},
+  {id:'d5',base:'22:00',sublabel:'西藥（第五次）',note:'晚飯後 ｜ 消炎止痛距上次 4 小時 ｜ 痛風藥距上次 6 小時 ｜ 胃藥晚上一次',pills:[{id:'p8',name:'消炎止痛藥',type:'western'},{id:'p9',name:'白色痛風藥',type:'western'},{id:'p10',name:'胃藥',type:'western'}]},
 ];
 const SUPPS=[
   {id:'s0',name:'Berocca（Vit C+B+D+Zinc）',note:'早上・11:00',time:'11:00',dot:'#E47A11'},
@@ -435,7 +437,7 @@ const MEALS_TL=[{time:'12:30',name:'午飯'},{time:'19:00',name:'晚飯'}];
 
 // ── STATE ─────────────────────────────────────────────────
 let notionToken='';
-let todayDoses=JSON.parse(JSON.stringify(DEFAULT_DOSES)); // deep copy
+let todayDoses=JSON.parse(JSON.stringify(DEFAULT_DOSES));
 let medChecked={};
 let suppChecked={};
 let doseTimesOverride={};
@@ -448,6 +450,57 @@ let goutMarks=[];
 let curSev='mod';
 let doseIdCounter=100;
 
+// ── STORAGE KEYS ──────────────────────────────────────────
+const SK={
+  date:      'hk_date',
+  doses:     'hk_doses_'+todayStr,
+  medChk:    'hk_medchk_'+todayStr,
+  suppChk:   'hk_suppchk_'+todayStr,
+  timeOvr:   'hk_timeovr_'+todayStr,
+  delayed:   'hk_delayed_'+todayStr,
+  food:      'hk_food_'+todayStr,
+  steps:     'hk_steps_'+todayStr,
+  gout:      'hk_gout_'+todayStr,
+  idCounter: 'hk_idcounter',
+};
+
+function saveAll(){
+  try{
+    localStorage.setItem(SK.date, todayStr);
+    localStorage.setItem(SK.doses, JSON.stringify(todayDoses));
+    localStorage.setItem(SK.medChk, JSON.stringify(medChecked));
+    localStorage.setItem(SK.suppChk, JSON.stringify(suppChecked));
+    localStorage.setItem(SK.timeOvr, JSON.stringify(doseTimesOverride));
+    localStorage.setItem(SK.delayed, JSON.stringify(doseDelayed));
+    localStorage.setItem(SK.food, JSON.stringify(foodLog));
+    localStorage.setItem(SK.steps, String(steps));
+    localStorage.setItem(SK.gout, JSON.stringify(goutMarks));
+    localStorage.setItem(SK.idCounter, String(doseIdCounter));
+  }catch(e){console.warn('Save failed',e);}
+}
+
+function loadToday(){
+  const storedDate=localStorage.getItem(SK.date);
+  if(storedDate!==todayStr){
+    todayDoses=JSON.parse(JSON.stringify(DEFAULT_DOSES));
+    medChecked={};suppChecked={};doseTimesOverride={};doseDelayed={};
+    foodLog=[];steps=0;goutMarks=[];
+    saveAll();
+    return;
+  }
+  try{
+    const d=localStorage.getItem(SK.doses);if(d)todayDoses=JSON.parse(d);
+    const mc=localStorage.getItem(SK.medChk);if(mc)medChecked=JSON.parse(mc);
+    const sc=localStorage.getItem(SK.suppChk);if(sc)suppChecked=JSON.parse(sc);
+    const to=localStorage.getItem(SK.timeOvr);if(to)doseTimesOverride=JSON.parse(to);
+    const dl=localStorage.getItem(SK.delayed);if(dl)doseDelayed=JSON.parse(dl);
+    const fl=localStorage.getItem(SK.food);if(fl)foodLog=JSON.parse(fl);
+    const st=localStorage.getItem(SK.steps);if(st)steps=parseInt(st)||0;
+    const gm=localStorage.getItem(SK.gout);if(gm)goutMarks=JSON.parse(gm);
+    const ic=localStorage.getItem(SK.idCounter);if(ic)doseIdCounter=parseInt(ic)||100;
+  }catch(e){console.warn('Load failed',e);}
+}
+
 // ── TOKEN / LAUNCH ────────────────────────────────────────
 function startApp(){const t=document.getElementById('tokenInput').value.trim();if(!t){showToast('請輸入 Notion Token');return;}notionToken=t;launch();}
 function startAppNoToken(){notionToken='';launch();}
@@ -455,16 +508,16 @@ function updateToken(){const t=document.getElementById('newTokenInput').value.tr
 function updateTokenStatus(){document.getElementById('tokenStatus').textContent=notionToken?'已連接 Notion ✓':'未連接';}
 
 function launch(){
+  loadToday();
   document.getElementById('tokenScreen').style.display='none';
   document.getElementById('mainApp').style.display='block';
-  const days=['日','一','二','三','四','五','六'];
-  const lbl=`${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日（星期${days[today.getDay()]}）`;
+  const days=['日','\u4e00','\u4e8c','\u4e09','\u56db','\u4e94','\u516d'];
+  const lbl=today.getFullYear()+'\u5e74'+(today.getMonth()+1)+'\u6708'+today.getDate()+'\u65e5\uff08\u661f\u671f'+days[today.getDay()]+'\uff09';
   document.getElementById('medsDateLabel').textContent=lbl;
   document.getElementById('foodDateLabel').textContent=lbl;
-  // load saved steps
-  const saved=localStorage.getItem('steps_'+todayStr);
-  if(saved){steps=parseInt(saved)||0;updateStepsUI();}
-  buildMeds();buildSupps();buildFood();fetchWeather();updateTokenStatus();buildGoutLog();setSev('mod');
+  buildMeds();buildSupps();buildFood();updateStepsUI();
+  fetchWeather();updateTokenStatus();buildGoutLog();setSev('mod');
+  showToast('\u8cc7\u6599\u5df2\u8f09\u5165 \u2713');
 }
 
 function showPage(id){
@@ -479,7 +532,7 @@ function resetToDefault(){
   if(!confirm('重設今日藥單返預設？已打勾嘅記錄會清除。'))return;
   todayDoses=JSON.parse(JSON.stringify(DEFAULT_DOSES));
   medChecked={};doseTimesOverride={};doseDelayed={};
-  buildMeds();showToast('已重設返預設藥單');
+  saveAll();buildMeds();showToast('已重設返預設藥單');
 }
 
 // ── ADD DOSE MODAL ────────────────────────────────────────
@@ -504,13 +557,13 @@ function addDose(){
   } else {
     todayDoses.push({id:newId,base:time,sublabel:name,note:note,pills:[{id:pid,name:name,type:selTypeVal}]});
   }
-  closeAddDoseModal();buildMeds();showToast(`已加入：${name}`);
+  closeAddDoseModal();saveAll();buildMeds();showToast(`已加入：${name}`);
 }
 
 // ── DELETE DOSE ───────────────────────────────────────────
 function deleteDose(doseId){
   todayDoses=todayDoses.filter(d=>d.id!==doseId);
-  buildMeds();showToast('已刪除');
+  saveAll();buildMeds();showToast('已刪除');
 }
 
 // ── TIME UTILS ────────────────────────────────────────────
@@ -600,9 +653,9 @@ function buildMeds(){
 
 function startEdit(did){document.getElementById('t-'+did).style.display='none';const i=document.getElementById('inp-'+did);i.style.display='inline-block';i.focus();}
 function endEdit(did){document.getElementById('inp-'+did).style.display='none';document.getElementById('t-'+did).style.display='inline';}
-function onTC(did,val){doseTimesOverride[did]=val;doseDelayed[did]=true;buildMeds();}
-function delayD(did,mins){doseTimesOverride[did]=addM(getT(did),mins);doseDelayed[did]=true;buildMeds();}
-function togglePill(pid){medChecked[pid]=!medChecked[pid];buildMeds();}
+function onTC(did,val){doseTimesOverride[did]=val;doseDelayed[did]=true;saveAll();buildMeds();}
+function delayD(did,mins){doseTimesOverride[did]=addM(getT(did),mins);doseDelayed[did]=true;saveAll();buildMeds();}
+function togglePill(pid){medChecked[pid]=!medChecked[pid];saveAll();buildMeds();}
 
 function buildSupps(){
   const c=document.getElementById('suppsContainer');c.innerHTML='';
@@ -620,7 +673,7 @@ function buildSupps(){
   });
   updateMedProgress();
 }
-function toggleSupp(sid){suppChecked[sid]=!suppChecked[sid];buildSupps();}
+function toggleSupp(sid){suppChecked[sid]=!suppChecked[sid];saveAll();buildSupps();}
 
 function updateMedProgress(){
   const pills=todayDoses.flatMap(d=>[...d.pills.map(p=>p.id),d.isReminder?['r_'+d.id]:[]].flat());
@@ -636,7 +689,7 @@ function updateMedProgress(){
 function saveSteps(){
   const val=parseInt(document.getElementById('stepsInput').value)||0;
   steps=val;
-  localStorage.setItem('steps_'+todayStr,steps);
+  saveAll();
   updateStepsUI();
   document.getElementById('stepsInput').value='';
   showToast(`步數記錄：${steps.toLocaleString()} 步`);
@@ -689,9 +742,9 @@ function addFood(){
   const meal=document.getElementById('foodMeal').value;
   if(!name){showToast('請輸入食物名稱');return;}
   foodLog.push({name,grams,protein:p100*grams/100,cals:c100*grams/100,p100,c100,meal,purine:selPurineVal});
-  closeFoodModal();buildFood();
+  closeFoodModal();saveAll();buildFood();
 }
-function delFood(idx){foodLog.splice(idx,1);buildFood();}
+function delFood(idx){foodLog.splice(idx,1);saveAll();buildFood();}
 
 // ── WEATHER ───────────────────────────────────────────────
 async function fetchWeather(){
@@ -717,7 +770,7 @@ function tapBody(e,view){
   const x=(e.clientX-rect.left)/rect.width*vb.width;
   const y=(e.clientY-rect.top)/rect.height*vb.height;
   goutMarks.push({x:Math.round(x*10)/10,y:Math.round(y*10)/10,view,sev:curSev,id:Date.now()});
-  renderMarks();buildGoutLog();
+  saveAll();renderMarks();buildGoutLog();
 }
 function renderMarks(){
   ['front','back'].forEach(view=>{
@@ -737,8 +790,8 @@ function renderMarks(){
     });
   });
 }
-function removeMark(id){goutMarks=goutMarks.filter(m=>m.id!==id);renderMarks();buildGoutLog();}
-function clearMarks(){goutMarks=[];renderMarks();buildGoutLog();}
+function removeMark(id){goutMarks=goutMarks.filter(m=>m.id!==id);saveAll();renderMarks();buildGoutLog();}
+function clearMarks(){goutMarks=[];saveAll();renderMarks();buildGoutLog();}
 const SEV_LBL={mild:'輕微',mod:'中度',severe:'嚴重'};
 function buildGoutLog(){
   const c=document.getElementById('goutLog');
